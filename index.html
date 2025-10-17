@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calculateur Boîtes & Flacons (PWA)</title>
+  <meta name="description" content="Calcul du nombre de boîtes (comprimés, sirops, sachets, gouttes buvables, collyres) pour périodes fixes, dégressives ou progressives.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0ea5e9">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">💊</span>
+      <h1>Calculateur Boîtes & Flacons</h1>
+    </div>
+    <button id="installBtn" class="btn secondary" hidden>Installer</button>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Mode de calcul</h2>
+      <div class="mode-switch">
+        <label><input type="radio" name="mode" value="fixe" checked> Période fixe</label>
+        <label><input type="radio" name="mode" value="multi"> Période dégressive / progressive (par paliers)</label>
+      </div>
+      <div id="phaseContainer" class="phases hidden">
+        <div class="phase-actions">
+          <button id="addPhase" class="btn">+ Ajouter un palier</button>
+          <button id="clearPhases" class="btn danger">Effacer</button>
+        </div>
+        <div id="phases"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Forme</h2>
+      <div class="tabs" role="tablist" aria-label="Forme pharmaceutique">
+        <button class="tab active" data-tab="tab-comprime">Comprimés</button>
+        <button class="tab" data-tab="tab-sirop">Sirop</button>
+        <button class="tab" data-tab="tab-sachet">Sachet</button>
+        <button class="tab" data-tab="tab-gouttes">Gouttes buvables</button>
+        <button class="tab" data-tab="tab-collyre">Collyres</button>
+      </div>
+
+      <div class="panes">
+        <!-- Comprimé -->
+        <div id="tab-comprime" class="pane active">
+          <div class="grid">
+            <label>Unités par prise (comprimés)
+              <input type="number" id="cmp_units" min="0" step="0.25" value="1">
+            </label>
+            <label>Fréquence / jour (prises)
+              <input type="number" id="cmp_freq" min="0" step="0.5" value="2">
+            </label>
+            <label>Durée (jours)
+              <input type="number" id="cmp_days" min="0" step="1" value="7">
+            </label>
+            <label>Unités par boîte (comprimés/boîte)
+              <input type="number" id="cmp_per_box" min="1" step="1" value="30">
+            </label>
+          </div>
+        </div>
+
+        <!-- Sirop -->
+        <div id="tab-sirop" class="pane">
+          <div class="grid">
+            <label>Concentration (mg/mL)
+              <input type="number" id="sir_mg_per_ml" min="0" step="0.1" value="20">
+            </label>
+            <label>Dose par prise (mg)
+              <input type="number" id="sir_dose_mg" min="0" step="1" value="200">
+            </label>
+            <label>Fréquence / jour (prises)
+              <input type="number" id="sir_freq" min="0" step="0.5" value="2">
+            </label>
+            <label>Durée (jours)
+              <input type="number" id="sir_days" min="0" step="1" value="7">
+            </label>
+            <label>Volume par flacon (mL)
+              <input type="number" id="sir_bottle_ml" min="1" step="1" value="150">
+            </label>
+          </div>
+        </div>
+
+        <!-- Sachet -->
+        <div id="tab-sachet" class="pane">
+          <div class="grid">
+            <label>Sachets par prise
+              <input type="number" id="sac_units" min="0" step="0.25" value="1">
+            </label>
+            <label>Fréquence / jour (prises)
+              <input type="number" id="sac_freq" min="0" step="0.5" value="2">
+            </label>
+            <label>Durée (jours)
+              <input type="number" id="sac_days" min="0" step="1" value="5">
+            </label>
+            <label>Sachets par boîte
+              <input type="number" id="sac_per_box" min="1" step="1" value="20">
+            </label>
+          </div>
+        </div>
+
+        <!-- Gouttes buvables -->
+        <div id="tab-gouttes" class="pane">
+          <div class="grid">
+            <label>Gouttes par prise
+              <input type="number" id="gtt_units" min="0" step="0.5" value="10">
+            </label>
+            <label>Fréquence / jour (prises)
+              <input type="number" id="gtt_freq" min="0" step="0.5" value="3">
+            </label>
+            <label>Durée (jours)
+              <input type="number" id="gtt_days" min="0" step="1" value="7">
+            </label>
+            <label>Gouttes par mL (≈20 par défaut)
+              <input type="number" id="gtt_per_ml" min="1" step="1" value="20">
+            </label>
+            <label>Volume par flacon (mL)
+              <input type="number" id="gtt_bottle_ml" min="1" step="1" value="30">
+            </label>
+          </div>
+        </div>
+
+        <!-- Collyres -->
+        <div id="tab-collyre" class="pane">
+          <div class="grid">
+            <label>Gouttes par instillation et par œil
+              <input type="number" id="col_drops_per_eye" min="0" step="0.5" value="1">
+            </label>
+            <label>Nombre d'yeux traités (1 ou 2)
+              <input type="number" id="col_eyes" min="1" step="1" value="2">
+            </label>
+            <label>Fréquence / jour (instillations)
+              <input type="number" id="col_freq" min="0" step="0.5" value="3">
+            </label>
+            <label>Durée (jours)
+              <input type="number" id="col_days" min="0" step="1" value="14">
+            </label>
+            <label>Gouttes par mL (≈20 par défaut)
+              <input type="number" id="col_per_ml" min="1" step="1" value="20">
+            </label>
+            <label>Volume par flacon (mL)
+              <input type="number" id="col_bottle_ml" min="1" step="1" value="10">
+            </label>
+            <label>Durée maximale d'utilisation d'un flacon (jours, optionnel)
+              <input type="number" id="col_max_days" min="0" step="1" placeholder="Ex: 28">
+            </label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card actions">
+      <button id="calcBtn" class="btn primary">Calculer</button>
+      <button id="resetBtn" class="btn secondary">Réinitialiser</button>
+      <label class="remember"><input type="checkbox" id="remember"> Mémoriser mes paramètres</label>
+    </section>
+
+    <section class="card" id="results" aria-live="polite">
+      <h2>Résultats</h2>
+      <div id="resultContent" class="result-grid">
+        <div class="result">
+          <h3>Résumé</h3>
+          <div id="summary"></div>
+        </div>
+        <div class="result">
+          <h3>Détail</h3>
+          <div id="detail"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card tips">
+      <h2>Notes</h2>
+      <ul>
+        <li>Les calculs arrondissent au supérieur le nombre de boîtes/flacons.</li>
+        <li>Pour les périodes dégressives/progressives, ajoutez un palier par schéma (ex: J1-3: 2 cp x3/j ; J4-7: 1 cp x2/j).</li>
+        <li>Valeurs par défaut : 20 gouttes ≈ 1 mL pour solutions aqueuses. Ajustez si nécessaire selon le RCP.</li>
+        <li>Collyres : un flacon entamé peut avoir une durée d'utilisation limitée. Vous pouvez la préciser pour forcer un minimum de flacons.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <small>&copy; 2025 — Calculateur Boîtes & Flacons • PWA hors-ligne • Conçu pour l'officine</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
