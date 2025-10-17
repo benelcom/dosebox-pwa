@@ -72,7 +72,7 @@
             <div style="display:flex;gap:8px;align-items:end">
               <button id="sir_toggle" class="btn secondary" type="button">Basculer mg ↔ cuillère</button>
             </div>
-            <label>Mode de dose
+            <label>Mode de dose <span class="hint" id="sir_hint" title="Équivalences :\n• Cuillère à café = 2,5 mL\n• Cuillère à dessert = 5 mL\n• Cuillère à soupe = 15 mL">ⓘ</span>
               <select id="sir_spoon">
                 <option value="0" selected>En mg (classique)</option>
                 <option value="2.5">Cuillère à café (2,5 mL)</option>
@@ -81,7 +81,7 @@
               </select>
             </label>
             <label id="sir_dose_label">Dose par prise (mg) ou nombre de cuillères
-              <input type="number" id="sir_dose_mg" min="0" step="0.1" value="200">
+              <div class="stepper" id="sir_stepper"><button class="stepper-btn" type="button" id="sir_minus">−</button><input type="number" id="sir_dose_mg" min="0" step="0.1" value="200"><button class="stepper-btn" type="button" id="sir_plus">+</button></div>
             </label>
             <label>Concentration (mg/mL)
               <input type="number" id="sir_mg_per_ml" min="0" step="0.1" value="20">

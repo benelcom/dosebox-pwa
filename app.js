@@ -23,6 +23,9 @@ function updateSyrupUI(){
   const spoonSel = qs('#sir_spoon');
   const spoon = +spoonSel.value || 0;
   const doseLabel = qs('#sir_dose_label');
+  const stepper = qs('#sir_stepper');
+  const minusBtn = qs('#sir_minus');
+  const plusBtn = qs('#sir_plus');
   const mgPerMlWrap = qs('#sir_mg_per_ml').closest('label');
   const doseInput = qs('#sir_dose_mg');
   if(spoon > 0){
@@ -30,7 +33,8 @@ function updateSyrupUI(){
     mgPerMlWrap.classList.add('hidden-inline');
     doseLabel.innerHTML = "Nombre de cuillères par prise";
     if((+doseInput.value||0)===0){ doseInput.value = 1; }
-    doseInput.step = 0.25;
+    doseInput.step = 0.5;
+    doseInput.min = 0;
     doseInput.placeholder = "ex: 1";
   }else{
     // mg mode: show mg/mL, relabel dose as mg
@@ -38,6 +42,8 @@ function updateSyrupUI(){
     doseLabel.innerHTML = "Dose par prise (mg)";
     if((+doseInput.value||0)===0){ doseInput.value = 200; }
     doseInput.step = 0.1;
+    doseInput.min = 0;
+    if(stepper) stepper.classList.add('hidden-inline');
     doseInput.placeholder = "ex: 200";
   }
 }
@@ -116,7 +122,7 @@ function readInputs(){
   const data = {
     mode, phases,
     cmp: { units:+qs('#cmp_units').value||0, freq:+qs('#cmp_freq').value||0, days:+qs('#cmp_days').value||0, perBox:+qs('#cmp_per_box').value||1 },
-    sir: { spoon:+qs('#sir_spoon').value||0, mgPerMl:+qs('#sir_mg_per_ml').value||0, doseMg:+qs('#sir_dose_mg').value||0, freq:+qs('#sir_freq').value||0, days:+qs('#sir_days').value||0, bottleMl:+qs('#sir_bottle_ml').value||1 },
+    sir: { spoon: +(qs('#sir_spoon').value||0), mgPerMl: +(qs('#sir_mg_per_ml').value||0), doseMg: +(qs('#sir_dose_mg').value||0), freq: +(qs('#sir_freq').value||0), days: +(qs('#sir_days').value||0), bottleMl: +(qs('#sir_bottle_ml').value||1) },
     sac: { units:+qs('#sac_units').value||0, freq:+qs('#sac_freq').value||0, days:+qs('#sac_days').value||0, perBox:+qs('#sac_per_box').value||1 },
     gtt: { units:+qs('#gtt_units').value||0, freq:+qs('#gtt_freq').value||0, days:+qs('#gtt_days').value||0, perMl:+qs('#gtt_per_ml').value||20, bottleMl:+qs('#gtt_bottle_ml').value||1 },
     col: { dropsPerEye:+qs('#col_drops_per_eye').value||0, eyes:+qs('#col_eyes').value||1, freq:+qs('#col_freq').value||0, days:+qs('#col_days').value||0, perMl:+qs('#col_per_ml').value||20, bottleMl:+qs('#col_bottle_ml').value||1, maxDays:+qs('#col_max_days').value||0 }
@@ -179,41 +185,42 @@ function calc(){
 
   if(tab==='tab-sirop'){
     let totalMl = 0;
-    const spoon = +d.sir.spoon || 0; // 0=mg-mode; >0 = mL/ spoon
-    if(spoon > 0){
-      // d.sir.doseMg is used as "number of spoons per intake"
+    const spoonMl = +d.sir.spoon || 0; // 0=mg mode, >0 = mL per spoon
+    const doseVal = +d.sir.doseMg || 0; // in mg (mg-mode) OR in spoons (spoon-mode)
+    if(spoonMl > 0){
       if(d.mode==='multi'){
         const phases = Array.from(document.querySelectorAll('.phase'));
         phases.forEach(ph=>{
           const days = +ph.querySelector('.ph_days').value || 0;
           const freq = +ph.querySelector('.ph_freq').value || 0;
-          const spoons = +ph.querySelector('.ph_units').value || (+d.sir.doseMg || 1);
-          totalMl += days * freq * spoons * spoon;
+          const spoons = +ph.querySelector('.ph_units').value || (doseVal>0 ? doseVal : 1);
+          totalMl += days * freq * spoons * spoonMl;
         });
       } else {
-        const spoons = +d.sir.doseMg || 1;
-        totalMl = d.sir.days * d.sir.freq * spoons * spoon;
+        const spoons = doseVal>0 ? doseVal : 1;
+        totalMl = d.sir.days * d.sir.freq * spoons * spoonMl;
       }
     } else {
+      const mgPerMl = Math.max(d.sir.mgPerMl, 1);
       if(d.mode==='multi'){
         const phases = Array.from(document.querySelectorAll('.phase'));
-        const dosePerIntakeMl = (mg)=> mg / Math.max(d.sir.mgPerMl,1);
         phases.forEach(ph=>{
           const days = +ph.querySelector('.ph_days').value || 0;
           const freq = +ph.querySelector('.ph_freq').value || 0;
-          const units = +ph.querySelector('.ph_units').value || 0; // mg per intake override
-          const doseMg = units>0 ? units : d.sir.doseMg;
-          totalMl += days * freq * dosePerIntakeMl(doseMg);
+          const unitsMg = +ph.querySelector('.ph_units').value || doseVal;
+          totalMl += days * freq * (unitsMg / mgPerMl);
         });
       } else {
-        totalMl = d.sir.days * d.sir.freq * (d.sir.doseMg / Math.max(d.sir.mgPerMl,1));
+        totalMl = d.sir.days * d.sir.freq * (doseVal / mgPerMl);
       }
     }
-    const bottles = ceilDiv(totalMl, d.sir.bottleMl);
-    renderResult(`<p><strong>Sirop :</strong> ${formatBottle(bottles)}</p>`, `<p>Volume total : <strong>${totalMl.toFixed(1)} mL</strong><br>Flacon : <strong>${d.sir.bottleMl} mL</strong>${spoon>0?`<br>Mode cuillère : <strong>${spoon} mL/cuillère</strong>`:''}</p>`);
+    const bottles = Math.ceil(totalMl / Math.max(d.sir.bottleMl,1));
+    renderResult(
+      `<p><strong>Sirop :</strong> ${formatBottle(bottles)} ${modeBadge}</p>`,
+      `<p>Volume total : <strong>${totalMl.toFixed(1)} mL</strong><br>Flacon : <strong>${d.sir.bottleMl} mL</strong>${spoonMl>0?`<br>Mode cuillère : <strong>${spoonMl} mL/cuillère</strong> &nbsp; • &nbsp; Cuillères/prise : <strong>${doseVal||1}</strong>`:''}</p>`
+    );
   }
-
-  if(tab==='tab-sachet'){
+if(tab==='tab-sachet'){
     const totalUnits = d.mode==='multi' ? sumPhasesUnits() : d.sac.units * d.sac.freq * d.sac.days;
     const boxes = ceilDiv(totalUnits, d.sac.perBox);
     renderResult(`<p><strong>Sachets :</strong> ${formatBox(boxes)}</p>`, `<p>Total sachets : <strong>${totalUnits}</strong><br>Par boîte : <strong>${d.sac.perBox}</strong></p>`);
@@ -267,8 +274,32 @@ function calc(){
   }
 }
 
+
+function adjustSpoonDose(dir){
+  const spoon = +qs('#sir_spoon').value || 0;
+  const input = qs('#sir_dose_mg');
+  if(!input) return;
+  if(spoon>0){
+    const step = 0.5;
+    let val = parseFloat(input.value||'0');
+    if(Number.isNaN(val)) val = 0;
+    val = Math.max(0, Math.round((val + (dir*step))*2)/2);
+    input.value = val.toFixed(1).replace(/\.0$/, '');
+  }else{
+    // mg mode: use 50 mg coarse step
+    let val = parseFloat(input.value||'0'); if(Number.isNaN(val)) val = 0;
+    val = Math.max(0, val + (dir*50));
+    input.value = String(val);
+  }
+}
 document.querySelector('#calcBtn').addEventListener('click', calc);
-document.querySelector('#resetBtn').addEventListener('click', ()=>{ localStorage.removeItem('pwa-dosebox-v2'); location.reload(); });
+document.querySelector('#resetBtn').addEventListener('click', ()=>{ localStorage.removeItem('pwa-dosebox-v2');
+// Stepper buttons
+const minusBtn = qs('#sir_minus');
+const plusBtn = qs('#sir_plus');
+if(minusBtn) minusBtn.addEventListener('click', ()=>adjustSpoonDose(-1));
+if(plusBtn) plusBtn.addEventListener('click', ()=>adjustSpoonDose(1));
+ location.reload(); });
 
 let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', (e)=>{

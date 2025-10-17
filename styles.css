@@ -43,3 +43,10 @@ input,select{padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;font-
 }
 
 .hidden-inline{display:none}
+
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:600;background:#e2e8f0;color:#0f172a;margin-left:6px}
+@media (prefers-color-scheme: dark){.badge{background:#1f2937;color:#e5e7eb}}
+.hint{display:inline-block;margin-left:6px;cursor:help;user-select:none;font-weight:700}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper-btn{border:1px solid #e2e8f0;background:#f1f5f9;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer}
+@media (prefers-color-scheme: dark){.stepper-btn{background:#0b1220;border-color:#1f2937;color:#e5e7eb}}
