@@ -185,11 +185,17 @@ function calc(){
 
   if(tab==='tab-sirop'){
     let totalMl = 0;
+    const phasesArr = Array.from(document.querySelectorAll('.phase'));
+    const hasPhases = phasesArr.length>0 && phasesArr.some(ph=> ((+ph.querySelector('.ph_days').value||0)>0 && (+ph.querySelector('.ph_freq').value||0)>0));
     const spoonMl = +d.sir.spoon || 0; // 0=mg mode, >0 = mL per spoon
     const doseVal = +d.sir.doseMg || 0; // in mg (mg-mode) OR in spoons (spoon-mode)
     if(spoonMl > 0){
-      if(d.mode==='multi'){
-        const phases = Array.from(document.querySelectorAll('.phase'));
+      if(d.mode==='multi' && !hasPhases){
+        const spoons = doseVal>0 ? doseVal : 1;
+        totalMl = d.sir.days * d.sir.freq * spoons * spoonMl;
+      } else
+      if(d.mode==='multi' && hasPhases){
+        const phases = phasesArr;
         phases.forEach(ph=>{
           const days = +ph.querySelector('.ph_days').value || 0;
           const freq = +ph.querySelector('.ph_freq').value || 0;
@@ -197,13 +203,21 @@ function calc(){
           totalMl += days * freq * spoons * spoonMl;
         });
       } else {
+      if(d.mode==='multi' && !hasPhases){
+        const mgPerMl = Math.max(d.sir.mgPerMl, 1);
+        totalMl = d.sir.days * d.sir.freq * (doseVal / mgPerMl);
+      } else
         const spoons = doseVal>0 ? doseVal : 1;
         totalMl = d.sir.days * d.sir.freq * spoons * spoonMl;
       }
     } else {
+      if(d.mode==='multi' && !hasPhases){
+        const mgPerMl = Math.max(d.sir.mgPerMl, 1);
+        totalMl = d.sir.days * d.sir.freq * (doseVal / mgPerMl);
+      } else
       const mgPerMl = Math.max(d.sir.mgPerMl, 1);
-      if(d.mode==='multi'){
-        const phases = Array.from(document.querySelectorAll('.phase'));
+      if(d.mode==='multi' && hasPhases){
+        const phases = phasesArr;
         phases.forEach(ph=>{
           const days = +ph.querySelector('.ph_days').value || 0;
           const freq = +ph.querySelector('.ph_freq').value || 0;
@@ -211,6 +225,10 @@ function calc(){
           totalMl += days * freq * (unitsMg / mgPerMl);
         });
       } else {
+      if(d.mode==='multi' && !hasPhases){
+        const mgPerMl = Math.max(d.sir.mgPerMl, 1);
+        totalMl = d.sir.days * d.sir.freq * (doseVal / mgPerMl);
+      } else
         totalMl = d.sir.days * d.sir.freq * (doseVal / mgPerMl);
       }
     }
