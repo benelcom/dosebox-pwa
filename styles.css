@@ -8,7 +8,7 @@ main{max-width:1000px;margin:24px auto;padding:0 16px}
 h2{margin:4px 0 12px 0;font-size:18px;color:#0f172a}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
 label{display:flex;flex-direction:column;gap:6px;font-size:14px}
-input{padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px}
+input,select{padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px}
 .btn{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:600}
 .btn.primary{background:#0ea5e9;color:#fff}
 .btn.secondary{background:#e2e8f0;color:#0f172a}
@@ -35,9 +35,11 @@ input{padding:10px 12px;border:1px solid #e2e8f0;border-radius:10px;font-size:14
   html,body{background:#0b1220;color:#e5e7eb}
   .card{background:#0f172a;color:#e5e7eb;border:1px solid #1e293b;box-shadow:none}
   .topbar{background:#0284c7}
-  input{background:#0b1220;border-color:#1f2937;color:#e5e7eb}
+  input,select{background:#0b1220;border-color:#1f2937;color:#e5e7eb}
   .tab{background:#0b1220;border-color:#1f2937;color:#e5e7eb}
   .tab.active{background:#0ea5e9;color:#fff;border-color:#0ea5e9}
   .result{background:#0b1220;border-color:#1f2937}
   .btn.secondary{background:#1f2937;color:#e5e7eb}
 }
+
+.hidden-inline{display:none}

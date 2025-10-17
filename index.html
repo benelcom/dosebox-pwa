@@ -47,9 +47,11 @@
       </div>
 
       <div class="panes">
-        <!-- Comprimé -->
         <div id="tab-comprime" class="pane active">
           <div class="grid">
+            <div style="display:flex;gap:8px;align-items:end">
+              <button id="sir_toggle" class="btn secondary" type="button">Basculer mg ↔ cuillère</button>
+            </div>
             <label>Unités par prise (comprimés)
               <input type="number" id="cmp_units" min="0" step="0.25" value="1">
             </label>
@@ -65,14 +67,24 @@
           </div>
         </div>
 
-        <!-- Sirop -->
         <div id="tab-sirop" class="pane">
           <div class="grid">
+            <div style="display:flex;gap:8px;align-items:end">
+              <button id="sir_toggle" class="btn secondary" type="button">Basculer mg ↔ cuillère</button>
+            </div>
+            <label>Mode de dose
+              <select id="sir_spoon">
+                <option value="0" selected>En mg (classique)</option>
+                <option value="2.5">Cuillère à café (2,5 mL)</option>
+                <option value="5">Cuillère à dessert (5 mL)</option>
+                <option value="15">Cuillère à soupe (15 mL)</option>
+              </select>
+            </label>
+            <label id="sir_dose_label">Dose par prise (mg) ou nombre de cuillères
+              <input type="number" id="sir_dose_mg" min="0" step="0.1" value="200">
+            </label>
             <label>Concentration (mg/mL)
               <input type="number" id="sir_mg_per_ml" min="0" step="0.1" value="20">
-            </label>
-            <label>Dose par prise (mg)
-              <input type="number" id="sir_dose_mg" min="0" step="1" value="200">
             </label>
             <label>Fréquence / jour (prises)
               <input type="number" id="sir_freq" min="0" step="0.5" value="2">
@@ -86,9 +98,11 @@
           </div>
         </div>
 
-        <!-- Sachet -->
         <div id="tab-sachet" class="pane">
           <div class="grid">
+            <div style="display:flex;gap:8px;align-items:end">
+              <button id="sir_toggle" class="btn secondary" type="button">Basculer mg ↔ cuillère</button>
+            </div>
             <label>Sachets par prise
               <input type="number" id="sac_units" min="0" step="0.25" value="1">
             </label>
@@ -104,9 +118,11 @@
           </div>
         </div>
 
-        <!-- Gouttes buvables -->
         <div id="tab-gouttes" class="pane">
           <div class="grid">
+            <div style="display:flex;gap:8px;align-items:end">
+              <button id="sir_toggle" class="btn secondary" type="button">Basculer mg ↔ cuillère</button>
+            </div>
             <label>Gouttes par prise
               <input type="number" id="gtt_units" min="0" step="0.5" value="10">
             </label>
@@ -125,9 +141,11 @@
           </div>
         </div>
 
-        <!-- Collyres -->
         <div id="tab-collyre" class="pane">
           <div class="grid">
+            <div style="display:flex;gap:8px;align-items:end">
+              <button id="sir_toggle" class="btn secondary" type="button">Basculer mg ↔ cuillère</button>
+            </div>
             <label>Gouttes par instillation et par œil
               <input type="number" id="col_drops_per_eye" min="0" step="0.5" value="1">
             </label>

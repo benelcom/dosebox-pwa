@@ -2,7 +2,6 @@
 const qs = (s, el=document)=>el.querySelector(s);
 const qsa = (s, el=document)=>Array.from(el.querySelectorAll(s));
 
-// --- Tabs ---
 qsa('.tab').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     qsa('.tab').forEach(b=>b.classList.remove('active'));
@@ -12,7 +11,6 @@ qsa('.tab').forEach(btn=>{
   });
 });
 
-// --- Mode switch ---
 const modeRadios = qsa('input[name="mode"]');
 const phaseContainer = qs('#phaseContainer');
 modeRadios.forEach(r=>r.addEventListener('change', ()=>{
@@ -20,7 +18,40 @@ modeRadios.forEach(r=>r.addEventListener('change', ()=>{
   phaseContainer.classList.toggle('hidden', !isMulti);
 }));
 
-// --- Phase builder (progressive/dégressive) ---
+
+function updateSyrupUI(){
+  const spoonSel = qs('#sir_spoon');
+  const spoon = +spoonSel.value || 0;
+  const doseLabel = qs('#sir_dose_label');
+  const mgPerMlWrap = qs('#sir_mg_per_ml').closest('label');
+  const doseInput = qs('#sir_dose_mg');
+  if(spoon > 0){
+    // Spoon mode: hide mg/mL, relabel dose as "Nombre de cuillères par prise"
+    mgPerMlWrap.classList.add('hidden-inline');
+    doseLabel.innerHTML = "Nombre de cuillères par prise";
+    if((+doseInput.value||0)===0){ doseInput.value = 1; }
+    doseInput.step = 0.25;
+    doseInput.placeholder = "ex: 1";
+  }else{
+    // mg mode: show mg/mL, relabel dose as mg
+    mgPerMlWrap.classList.remove('hidden-inline');
+    doseLabel.innerHTML = "Dose par prise (mg)";
+    if((+doseInput.value||0)===0){ doseInput.value = 200; }
+    doseInput.step = 0.1;
+    doseInput.placeholder = "ex: 200";
+  }
+}
+
+function toggleSyrupMode(){
+  const spoonSel = qs('#sir_spoon');
+  // If currently mg (0), switch to cuillère (default 5 mL = cuillère à dessert); else switch to mg
+  if((+spoonSel.value||0)===0){
+    spoonSel.value = "5"; // default to cuillère à dessert
+  }else{
+    spoonSel.value = "0";
+  }
+  updateSyrupUI();
+}
 const phasesEl = qs('#phases');
 const addPhaseBtn = qs('#addPhase');
 const clearPhasesBtn = qs('#clearPhases');
@@ -33,7 +64,7 @@ function addPhase(pref={days:3, units:1, freq:2, note:''}){
       <label>Durée du palier (jours)
         <input type="number" class="ph_days" min="0" step="1" value="${pref.days}">
       </label>
-      <label>Unités par prise
+      <label>Unités par prise (cp / sachet / gouttes ou n° cuillères si 'sirop + cuillères')
         <input type="number" class="ph_units" min="0" step="0.25" value="${pref.units}">
       </label>
       <label>Fréquence / jour (prises)
@@ -63,66 +94,39 @@ function addPhase(pref={days:3, units:1, freq:2, note:''}){
 
 addPhaseBtn.addEventListener('click', ()=>addPhase());
 clearPhasesBtn.addEventListener('click', ()=>{ phasesEl.innerHTML=''; });
+// --- Syrup UI toggle ---
+const spoonSelect = qs('#sir_spoon');
+const spoonToggleBtn = qs('#sir_toggle');
+if(spoonSelect){ spoonSelect.addEventListener('change', updateSyrupUI); }
+if(spoonToggleBtn){ spoonToggleBtn.addEventListener('click', toggleSyrupMode); }
+document.addEventListener('DOMContentLoaded', updateSyrupUI);
 
-// --- Storage helpers ---
+
 const rememberChk = qs('#remember');
-const STORAGE_KEY = 'pwa-dosebox-v1';
+const STORAGE_KEY = 'pwa-dosebox-v2'; // bumped to force SW update
 
 function readInputs(){
-  // Base mode & phases
   const mode = qs('input[name="mode"]:checked').value;
-  const phases = qsa('.phase').map(ph=> ({
-    days: +qs('.ph_days', ph).value || 0,
-    units: +qs('.ph_units', ph).value || 0,
-    freq: +qs('.ph_freq', ph).value || 0,
-    note: qs('.ph_note', ph).value || ''
+  const phases = Array.from(document.querySelectorAll('.phase')).map(ph=> ({
+    days: +ph.querySelector('.ph_days').value || 0,
+    units: +ph.querySelector('.ph_units').value || 0,
+    freq: +ph.querySelector('.ph_freq').value || 0,
+    note: ph.querySelector('.ph_note').value || ''
   }));
-  // Tabs values
   const data = {
     mode, phases,
-    cmp: {
-      units:+qs('#cmp_units').value||0,
-      freq:+qs('#cmp_freq').value||0,
-      days:+qs('#cmp_days').value||0,
-      perBox:+qs('#cmp_per_box').value||1
-    },
-    sir: {
-      mgPerMl:+qs('#sir_mg_per_ml').value||0,
-      doseMg:+qs('#sir_dose_mg').value||0,
-      freq:+qs('#sir_freq').value||0,
-      days:+qs('#sir_days').value||0,
-      bottleMl:+qs('#sir_bottle_ml').value||1
-    },
-    sac: {
-      units:+qs('#sac_units').value||0,
-      freq:+qs('#sac_freq').value||0,
-      days:+qs('#sac_days').value||0,
-      perBox:+qs('#sac_per_box').value||1
-    },
-    gtt: {
-      units:+qs('#gtt_units').value||0,
-      freq:+qs('#gtt_freq').value||0,
-      days:+qs('#gtt_days').value||0,
-      perMl:+qs('#gtt_per_ml').value||20,
-      bottleMl:+qs('#gtt_bottle_ml').value||1
-    },
-    col: {
-      dropsPerEye:+qs('#col_drops_per_eye').value||0,
-      eyes:+qs('#col_eyes').value||1,
-      freq:+qs('#col_freq').value||0,
-      days:+qs('#col_days').value||0,
-      perMl:+qs('#col_per_ml').value||20,
-      bottleMl:+qs('#col_bottle_ml').value||1,
-      maxDays:+qs('#col_max_days').value||0
-    }
+    cmp: { units:+qs('#cmp_units').value||0, freq:+qs('#cmp_freq').value||0, days:+qs('#cmp_days').value||0, perBox:+qs('#cmp_per_box').value||1 },
+    sir: { spoon:+qs('#sir_spoon').value||0, mgPerMl:+qs('#sir_mg_per_ml').value||0, doseMg:+qs('#sir_dose_mg').value||0, freq:+qs('#sir_freq').value||0, days:+qs('#sir_days').value||0, bottleMl:+qs('#sir_bottle_ml').value||1 },
+    sac: { units:+qs('#sac_units').value||0, freq:+qs('#sac_freq').value||0, days:+qs('#sac_days').value||0, perBox:+qs('#sac_per_box').value||1 },
+    gtt: { units:+qs('#gtt_units').value||0, freq:+qs('#gtt_freq').value||0, days:+qs('#gtt_days').value||0, perMl:+qs('#gtt_per_ml').value||20, bottleMl:+qs('#gtt_bottle_ml').value||1 },
+    col: { dropsPerEye:+qs('#col_drops_per_eye').value||0, eyes:+qs('#col_eyes').value||1, freq:+qs('#col_freq').value||0, days:+qs('#col_days').value||0, perMl:+qs('#col_per_ml').value||20, bottleMl:+qs('#col_bottle_ml').value||1, maxDays:+qs('#col_max_days').value||0 }
   };
   return data;
 }
 
 function saveIfChecked(){
   if(!rememberChk.checked) return;
-  const data = readInputs();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(readInputs()));
 }
 
 function loadSaved(){
@@ -130,49 +134,36 @@ function loadSaved(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return;
     const d = JSON.parse(raw);
-    // mode
-    qsa('input[name="mode"]').forEach(r=>r.checked = (r.value===d.mode));
-    phaseContainer.classList.toggle('hidden', d.mode!=='multi');
-    phasesEl.innerHTML='';
+    document.querySelectorAll('input[name="mode"]').forEach(r=>r.checked = (r.value===d.mode));
+    document.querySelector('#phaseContainer').classList.toggle('hidden', d.mode!=='multi');
+    document.querySelector('#phases').innerHTML='';
     (d.phases||[]).forEach(p=>addPhase(p));
-
-    // tabs
     if(d.cmp){ qs('#cmp_units').value=d.cmp.units; qs('#cmp_freq').value=d.cmp.freq; qs('#cmp_days').value=d.cmp.days; qs('#cmp_per_box').value=d.cmp.perBox; }
-    if(d.sir){ qs('#sir_mg_per_ml').value=d.sir.mgPerMl; qs('#sir_dose_mg').value=d.sir.doseMg; qs('#sir_freq').value=d.sir.freq; qs('#sir_days').value=d.sir.days; qs('#sir_bottle_ml').value=d.sir.bottleMl; }
+    if(d.sir){ qs('#sir_spoon').value=d.sir.spoon; qs('#sir_mg_per_ml').value=d.sir.mgPerMl; qs('#sir_dose_mg').value=d.sir.doseMg; qs('#sir_freq').value=d.sir.freq; qs('#sir_days').value=d.sir.days; qs('#sir_bottle_ml').value=d.sir.bottleMl; }
     if(d.sac){ qs('#sac_units').value=d.sac.units; qs('#sac_freq').value=d.sac.freq; qs('#sac_days').value=d.sac.days; qs('#sac_per_box').value=d.sac.perBox; }
     if(d.gtt){ qs('#gtt_units').value=d.gtt.units; qs('#gtt_freq').value=d.gtt.freq; qs('#gtt_days').value=d.gtt.days; qs('#gtt_per_ml').value=d.gtt.perMl; qs('#gtt_bottle_ml').value=d.gtt.bottleMl; }
     if(d.col){ qs('#col_drops_per_eye').value=d.col.dropsPerEye; qs('#col_eyes').value=d.col.eyes; qs('#col_freq').value=d.col.freq; qs('#col_days').value=d.col.days; qs('#col_per_ml').value=d.col.perMl; qs('#col_bottle_ml').value=d.col.bottleMl; qs('#col_max_days').value=d.col.maxDays||''; }
-  }catch(e){ console.warn('No saved state', e); }
+  }catch(e){}
 }
 loadSaved();
 
-// --- Calcul core ---
-function sumPhasesUnits(unitsPerIntakeKey='units'){
-  // Returns total "intake units" across phases = sum(days * freq * units)
-  const phases = qsa('.phase');
+function sumPhasesUnits(){
+  const phases = Array.from(document.querySelectorAll('.phase'));
   if(!phases.length) return 0;
-  let total = 0;
-  phases.forEach(ph=>{
-    const days = +qs('.ph_days', ph).value || 0;
-    const units = +qs('.ph_units', ph).value || 0;
-    const freq = +qs('.ph_freq', ph).value || 0;
-    total += days * freq * units;
-  });
-  return total;
+  return phases.reduce((t, ph)=>{
+    const days = +ph.querySelector('.ph_days').value || 0;
+    const units = +ph.querySelector('.ph_units').value || 0;
+    const freq = +ph.querySelector('.ph_freq').value || 0;
+    return t + days * freq * units;
+  }, 0);
 }
-
-function ceilDiv(a, b){ return Math.ceil(a / b); }
-
-function formatBox(n){ return `${n} ${n>1?'boîtes':'boîte'}`; }
-function formatBottle(n){ return `${n} ${n>1?'flacons':'flacon'}`; }
-
-function activeTabId(){
-  return qs('.tab.active').dataset.tab;
-}
-
+const ceilDiv = (a,b)=> Math.ceil(a/Math.max(b,1));
+const formatBox = (n)=> `${n} ${n>1?'boîtes':'boîte'}`;
+const formatBottle = (n)=> `${n} ${n>1?'flacons':'flacon'}`;
+const activeTabId = ()=> document.querySelector('.tab.active').dataset.tab;
 function renderResult(summaryHtml, detailHtml){
-  qs('#summary').innerHTML = summaryHtml;
-  qs('#detail').innerHTML = detailHtml;
+  document.querySelector('#summary').innerHTML = summaryHtml;
+  document.querySelector('#detail').innerHTML = detailHtml;
 }
 
 function calc(){
@@ -181,64 +172,61 @@ function calc(){
   saveIfChecked();
 
   if(tab==='tab-comprime'){
-    let totalUnits = 0;
-    if(d.mode==='multi'){
-      totalUnits = sumPhasesUnits();
-    }else{
-      totalUnits = d.cmp.units * d.cmp.freq * d.cmp.days;
-    }
-    const boxes = ceilDiv(totalUnits, Math.max(d.cmp.perBox,1));
-    renderResult(
-      `<p><strong>Comprimés :</strong> ${formatBox(boxes)}</p>`,
-      `<p>Total comprimés nécessaires : <strong>${totalUnits}</strong><br>Conditionnement : <strong>${d.cmp.perBox}</strong> / boîte</p>`
-    );
+    const totalUnits = d.mode==='multi' ? sumPhasesUnits() : d.cmp.units * d.cmp.freq * d.cmp.days;
+    const boxes = ceilDiv(totalUnits, d.cmp.perBox);
+    renderResult(`<p><strong>Comprimés :</strong> ${formatBox(boxes)}</p>`, `<p>Total comprimés : <strong>${totalUnits}</strong><br>Par boîte : <strong>${d.cmp.perBox}</strong></p>`);
   }
 
   if(tab==='tab-sirop'){
     let totalMl = 0;
-    if(d.mode==='multi'){
-      // For liquids defined by mg/mL and mg/intake, total mL = sum(days*freq*(doseMg/mgPerMl))
-      const dosePerIntakeMl = (x)=> x / Math.max(d.sir.mgPerMl,1);
-      const phases = qsa('.phase');
-      phases.forEach(ph=>{
-        const days = +qs('.ph_days', ph).value || 0;
-        const freq = +qs('.ph_freq', ph).value || 0;
-        const units = +qs('.ph_units', ph).value || 0; // meaning: "dose mg per intake" override per phase
-        const doseMg = units>0 ? units : d.sir.doseMg;
-        totalMl += days * freq * dosePerIntakeMl(doseMg);
-      });
-    }else{
-      totalMl = d.sir.days * d.sir.freq * (d.sir.doseMg / Math.max(d.sir.mgPerMl,1));
+    const spoon = +d.sir.spoon || 0; // 0=mg-mode; >0 = mL/ spoon
+    if(spoon > 0){
+      // d.sir.doseMg is used as "number of spoons per intake"
+      if(d.mode==='multi'){
+        const phases = Array.from(document.querySelectorAll('.phase'));
+        phases.forEach(ph=>{
+          const days = +ph.querySelector('.ph_days').value || 0;
+          const freq = +ph.querySelector('.ph_freq').value || 0;
+          const spoons = +ph.querySelector('.ph_units').value || (+d.sir.doseMg || 1);
+          totalMl += days * freq * spoons * spoon;
+        });
+      } else {
+        const spoons = +d.sir.doseMg || 1;
+        totalMl = d.sir.days * d.sir.freq * spoons * spoon;
+      }
+    } else {
+      if(d.mode==='multi'){
+        const phases = Array.from(document.querySelectorAll('.phase'));
+        const dosePerIntakeMl = (mg)=> mg / Math.max(d.sir.mgPerMl,1);
+        phases.forEach(ph=>{
+          const days = +ph.querySelector('.ph_days').value || 0;
+          const freq = +ph.querySelector('.ph_freq').value || 0;
+          const units = +ph.querySelector('.ph_units').value || 0; // mg per intake override
+          const doseMg = units>0 ? units : d.sir.doseMg;
+          totalMl += days * freq * dosePerIntakeMl(doseMg);
+        });
+      } else {
+        totalMl = d.sir.days * d.sir.freq * (d.sir.doseMg / Math.max(d.sir.mgPerMl,1));
+      }
     }
-    const bottles = ceilDiv(totalMl, Math.max(d.sir.bottleMl,1));
-    renderResult(
-      `<p><strong>Sirop :</strong> ${formatBottle(bottles)}</p>`,
-      `<p>Total volume nécessaire : <strong>${totalMl.toFixed(1)} mL</strong><br>Flacon : <strong>${d.sir.bottleMl} mL</strong></p>`
-    );
+    const bottles = ceilDiv(totalMl, d.sir.bottleMl);
+    renderResult(`<p><strong>Sirop :</strong> ${formatBottle(bottles)}</p>`, `<p>Volume total : <strong>${totalMl.toFixed(1)} mL</strong><br>Flacon : <strong>${d.sir.bottleMl} mL</strong>${spoon>0?`<br>Mode cuillère : <strong>${spoon} mL/cuillère</strong>`:''}</p>`);
   }
 
   if(tab==='tab-sachet'){
-    let totalUnits = 0;
-    if(d.mode==='multi'){
-      totalUnits = sumPhasesUnits();
-    }else{
-      totalUnits = d.sac.units * d.sac.freq * d.sac.days;
-    }
-    const boxes = ceilDiv(totalUnits, Math.max(d.sac.perBox,1));
-    renderResult(
-      `<p><strong>Sachets :</strong> ${formatBox(boxes)}</p>`,
-      `<p>Total sachets nécessaires : <strong>${totalUnits}</strong><br>Conditionnement : <strong>${d.sac.perBox}</strong> / boîte</p>`
-    );
+    const totalUnits = d.mode==='multi' ? sumPhasesUnits() : d.sac.units * d.sac.freq * d.sac.days;
+    const boxes = ceilDiv(totalUnits, d.sac.perBox);
+    renderResult(`<p><strong>Sachets :</strong> ${formatBox(boxes)}</p>`, `<p>Total sachets : <strong>${totalUnits}</strong><br>Par boîte : <strong>${d.sac.perBox}</strong></p>`);
   }
 
   if(tab==='tab-gouttes'){
     let totalDrops = 0;
     if(d.mode==='multi'){
-      const phases = qsa('.phase');
+      const phases = Array.from(document.querySelectorAll('.phase'));
       phases.forEach(ph=>{
-        const days = +qs('.ph_days', ph).value || 0;
-        const freq = +qs('.ph_freq', ph).value || 0;
-        const units = +qs('.ph_units', ph).value || 0; // drops per intake per phase
+        const days = +ph.querySelector('.ph_days').value || 0;
+        const freq = +ph.querySelector('.ph_freq').value || 0;
+        const units = +ph.querySelector('.ph_units').value || 0; // drops per intake override
         const u = units>0 ? units : d.gtt.units;
         totalDrops += days * freq * u;
       });
@@ -246,22 +234,19 @@ function calc(){
       totalDrops = d.gtt.days * d.gtt.freq * d.gtt.units;
     }
     const mlNeeded = totalDrops / Math.max(d.gtt.perMl,1);
-    const bottles = ceilDiv(mlNeeded, Math.max(d.gtt.bottleMl,1));
-    renderResult(
-      `<p><strong>Gouttes buvables :</strong> ${formatBottle(bottles)}</p>`,
-      `<p>Total gouttes : <strong>${totalDrops}</strong><br>Volume estimé : <strong>${mlNeeded.toFixed(1)} mL</strong><br>Flacon : <strong>${d.gtt.bottleMl} mL</strong></p>`
-    );
+    const bottles = ceilDiv(mlNeeded, d.gtt.bottleMl);
+    renderResult(`<p><strong>Gouttes buvables :</strong> ${formatBottle(bottles)}</p>`, `<p>Total gouttes : <strong>${totalDrops}</strong><br>Volume estimé : <strong>${mlNeeded.toFixed(1)} mL</strong><br>Flacon : <strong>${d.gtt.bottleMl} mL</strong></p>`);
   }
 
   if(tab==='tab-collyre'){
-    let totalDrops = 0;
     const perInstillation = d.col.dropsPerEye * Math.max(d.col.eyes,1);
+    let totalDrops = 0;
     if(d.mode==='multi'){
-      const phases = qsa('.phase');
+      const phases = Array.from(document.querySelectorAll('.phase'));
       phases.forEach(ph=>{
-        const days = +qs('.ph_days', ph).value || 0;
-        const freq = +qs('.ph_freq', ph).value || 0;
-        const units = +qs('.ph_units', ph).value || 0; // override drops per instillation (both eyes) if provided
+        const days = +ph.querySelector('.ph_days').value || 0;
+        const freq = +ph.querySelector('.ph_freq').value || 0;
+        const units = +ph.querySelector('.ph_units').value || 0; // override drops per instillation (both eyes)
         const u = units>0 ? units : perInstillation;
         totalDrops += days * freq * u;
       });
@@ -269,43 +254,36 @@ function calc(){
       totalDrops = d.col.days * d.col.freq * perInstillation;
     }
     const mlNeeded = totalDrops / Math.max(d.col.perMl,1);
-    let bottlesByVolume = ceilDiv(mlNeeded, Math.max(d.col.bottleMl,1));
-    // Constraint: max usable days per bottle (optional)
+    let bottlesByVolume = ceilDiv(mlNeeded, d.col.bottleMl);
     let bottlesByShelf = 0;
     if(d.col.maxDays>0){
-      // If treatment lasts N total days, each bottle usable for maxDays -> need at least ceil(totalDays / maxDays) bottles
       const totalDays = d.mode==='multi'
-        ? qsa('.phase').reduce((acc, ph)=> acc + (+qs('.ph_days', ph).value||0), 0)
+        ? Array.from(document.querySelectorAll('.phase')).reduce((acc, ph)=> acc + (+ph.querySelector('.ph_days').value||0), 0)
         : d.col.days;
       bottlesByShelf = Math.ceil(totalDays / Math.max(d.col.maxDays,1));
     }
     const bottles = Math.max(bottlesByVolume, bottlesByShelf||0);
-    renderResult(
-      `<p><strong>Collyres :</strong> ${formatBottle(bottles)}</p>`,
-      `<p>Total gouttes : <strong>${totalDrops}</strong><br>Volume estimé : <strong>${mlNeeded.toFixed(1)} mL</strong><br>Flacon : <strong>${d.col.bottleMl} mL</strong>${d.col.maxDays?`<br>Limite d'utilisation d'un flacon : <strong>${d.col.maxDays} j</strong>`:''}</p>`
-    );
+    renderResult(`<p><strong>Collyres :</strong> ${formatBottle(bottles)}</p>`, `<p>Total gouttes : <strong>${totalDrops}</strong><br>Volume estimé : <strong>${mlNeeded.toFixed(1)} mL</strong><br>Flacon : <strong>${d.col.bottleMl} mL</strong>${d.col.maxDays?`<br>Limite d'utilisation d'un flacon : <strong>${d.col.maxDays} j</strong>`:''}</p>`);
   }
 }
 
-qs('#calcBtn').addEventListener('click', calc);
-qs('#resetBtn').addEventListener('click', ()=>{ localStorage.removeItem(STORAGE_KEY); location.reload(); });
+document.querySelector('#calcBtn').addEventListener('click', calc);
+document.querySelector('#resetBtn').addEventListener('click', ()=>{ localStorage.removeItem('pwa-dosebox-v2'); location.reload(); });
 
-// --- PWA install flow ---
 let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault();
   deferredPrompt = e;
-  qs('#installBtn').hidden = false;
+  document.querySelector('#installBtn').hidden = false;
 });
-qs('#installBtn').addEventListener('click', async ()=>{
+document.querySelector('#installBtn').addEventListener('click', async ()=>{
   if(!deferredPrompt) return;
   deferredPrompt.prompt();
   await deferredPrompt.userChoice;
   deferredPrompt = null;
-  qs('#installBtn').hidden = true;
+  document.querySelector('#installBtn').hidden = true;
 });
 
-// --- Service worker ---
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('sw.js').catch(console.warn);
